@@ -5,7 +5,7 @@ from models import User
 with app.app_context():
 
     admin = User.query.filter_by(
-        email="admin@placement.com"
+        email="21f3003074@ds.study.iitm.ac.in"
     ).first()
 
     if not admin:
