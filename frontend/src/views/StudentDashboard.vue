@@ -917,9 +917,6 @@ onMounted(async () => {
 
         drives.value = drivesResponse.data
 
-        console.log(profile.value)
-        console.log("Drives:", JSON.stringify(drives.value, null, 2))
-
         const applicationsResponse = await axios.get(
 
             "/student/applications",
@@ -933,8 +930,6 @@ onMounted(async () => {
         applications.value = applicationsResponse.data
 
         await loadExportJobs()
-
-        console.log(applications.value)
 
         const processingJobs = exportJobs.value.filter(
 
@@ -966,13 +961,9 @@ const selectResume = (event) => {
 
     resume.value = event.target.files[0]
 
-    console.log(resume.value)
-
 }
 
 const saveProfile = async () => {
-
-    console.log("Save Button Clicked")
 
     const formData = new FormData()
 

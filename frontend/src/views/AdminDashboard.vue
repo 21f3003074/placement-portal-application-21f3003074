@@ -1641,8 +1641,6 @@ onMounted(async () => {
 
         await searchStudents()
 
-        console.log(dashboard.value)
-
     }
 
     catch (error) {
@@ -1751,11 +1749,6 @@ const loadPendingCompanies = async () => {
 
         pendingCompanies.value = response.data
 
-        console.log(
-            "Pending Companies:",
-            pendingCompanies.value
-        )
-
     }
 
     catch (error) {
@@ -1853,11 +1846,6 @@ const loadPendingDrives = async () => {
         )
 
         pendingDrives.value = response.data
-
-        console.log(
-            "Pending Drives:",
-            pendingDrives.value
-        )
 
     }
 
@@ -1961,8 +1949,6 @@ const searchStudents = async () => {
 
         students.value = response.data
 
-        console.log(students.value)
-
     }
 
     catch (error) {
@@ -2063,8 +2049,6 @@ const searchCompanies = async () => {
         )
 
         companies.value = response.data
-
-        console.log(companies.value)
 
     }
 

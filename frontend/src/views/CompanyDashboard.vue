@@ -1396,8 +1396,6 @@ const updateDrive = async () => {
 
         )
 
-        console.log(response)
-
         alert(response.data.message)
 
         await loadCompanyDrives()
