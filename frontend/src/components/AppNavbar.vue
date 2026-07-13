@@ -1,6 +1,8 @@
 <template>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top" 
+        style="background-color:#f57c00;"
+    >
 
         <div class="container-fluid">
 

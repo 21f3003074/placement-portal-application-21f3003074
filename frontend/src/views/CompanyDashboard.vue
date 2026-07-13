@@ -12,7 +12,7 @@
 
     />
 
-    <div class="container mt-4">
+    <div class="container pt-5" style="margin-top: 20px;">
 
        <div v-if="activeSection === 'home'">
 
@@ -933,6 +933,16 @@
 
                             </template>
 
+                        </td>
+
+                    </tr>
+
+                    <tr v-if="filteredApplications.length === 0">
+
+                        <td colspan="8" class="text-center text-muted">
+                            
+                            No applications yet.
+                        
                         </td>
 
                     </tr>
