@@ -1,0 +1,72 @@
+body {
+
+    background-color: #f4f7fc;
+
+    font-family: "Segoe UI", sans-serif;
+
+}
+
+
+.portal-card {
+
+    border: none;
+
+    border-radius: 20px;
+
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+
+    transition: all .25s ease;
+
+}
+
+.portal-card:hover {
+
+    transform: translateY(-3px);
+
+}
+
+
+.portal-btn {
+
+    border-radius: 10px;
+
+    font-weight: 600;
+
+    transition: all .25s ease;
+
+}
+
+.portal-btn:hover {
+
+    transform: translateY(-2px);
+
+}
+
+.form-control {
+
+    border-radius: 10px;
+
+}
+
+.form-control:focus {
+
+    box-shadow: 0 0 0 .15rem rgba(13,110,253,.15);
+
+}
+
+
+.table {
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+}
+
+.section-title {
+
+    font-weight: 700;
+
+    color: #0d6efd;
+
+}
