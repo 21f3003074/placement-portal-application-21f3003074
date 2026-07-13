@@ -1481,7 +1481,7 @@ def student_profile():
                 filepath
             )
 
-            profile.resume = filename
+            profile.resume = filepath
 
     db.session.commit()
 
