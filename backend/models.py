@@ -49,6 +49,7 @@ class PlacementDrive(db.Model):
     application_deadline = db.Column(db.Date, nullable=False)
     status = db.Column(db.String(20), nullable=False, default="pending")
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    company = db.relationship("Company", backref= "placement_drives")
 
 class Application(db.Model):
 

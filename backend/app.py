@@ -47,26 +47,6 @@ def home():
         "message": "Placement Portal Backend Running"
     }), 200
 
-
-@app.route("/users")
-def users():
-
-    all_users = User.query.all()
-
-    users_data = []
-
-    for user in all_users:
-
-        users_data.append({
-            "id": user.id,
-            "name": user.name,
-            "email": user.email,
-            "role": user.role,
-            "active": user.active
-        })
-
-    return jsonify(users_data), 200
-
 @app.route("/admin")
 def admin():
 
@@ -93,6 +73,9 @@ def register():
     name = request.form["name"]
     email = request.form["email"]
     password = request.form["password"]
+    branch = request.form["branch"]
+    cgpa = float(request.form["cgpa"])
+    graduation_year = int(request.form["graduation_year"])
 
     if not name or not email or not password:
         return jsonify({
@@ -116,6 +99,17 @@ def register():
     )
 
     db.session.add(student)
+    db.session.commit()
+
+    profile = StudentProfile(
+        user_id=student.id,
+        branch=branch,
+        cgpa=cgpa,
+        graduation_year=graduation_year,
+        resume=""
+    )
+
+    db.session.add(profile)
     db.session.commit()
 
     return jsonify({
@@ -168,22 +162,6 @@ def login():
         "role": user.role
     }), 200
 
-@app.route("/profile")
-def profile():
-
-    if not session.get("user_id"):
-        return jsonify({
-            "message": "Please Login First"
-        }), 401
-
-    user_id = session.get("user_id")
-    role = session.get("role")
-
-    return jsonify({
-        "user_id": user_id,
-        "role": role
-    }), 200
-
 @app.route("/admin-dashboard")
 def admin_dashboard():
 
@@ -207,10 +185,28 @@ def admin_dashboard():
 
     drive_count = PlacementDrive.query.count()
 
+    application_count = Application.query.count()
+
+    pending_company_count = Company.query.filter_by(
+        approval_status="pending"
+    ).count()
+
+    pending_drive_count = PlacementDrive.query.filter_by(
+        status="pending"
+    ).count()
+
+    selected_student_count = Application.query.filter_by(
+        status="selected"
+    ).count()
+
     return jsonify({
         "total_students": student_count,
         "total_companies": company_count,
-        "total_drives": drive_count
+        "total_drives": drive_count,
+        "total_applications": application_count,
+        "pending_companies": pending_company_count,
+        "pending_drives": pending_drive_count,
+        "selected_students": selected_student_count
     }), 200
 
 
@@ -264,6 +260,32 @@ def company_dashboard():
         user_id=session["user_id"]
     ).first()
 
+    drives = PlacementDrive.query.filter_by(
+        company_id=company.id
+    ).all()
+
+    total_applicants = 0
+    shortlisted = 0
+    selected = 0
+
+    for drive in drives:
+
+        applications = Application.query.filter_by(
+            drive_id=drive.id
+        ).all()
+
+        total_applicants += len(applications)
+
+        shortlisted += sum(
+            application.status == "shortlisted"
+            for application in applications
+        )
+
+        selected += sum(
+            application.status == "selected"
+            for application in applications
+        )
+
     drive_count = PlacementDrive.query.filter_by(
         company_id=company.id
     ).count()
@@ -273,10 +295,16 @@ def company_dashboard():
         "company_id": company.id,
         "company_name": company.company_name,
         "approval_status": company.approval_status,
-        "total_drives": drive_count
+        "total_drives": drive_count,
+        "total_applicants": total_applicants,
+        "shortlisted": shortlisted,
+        "selected": selected,
+        "hr_contact_name": company.hr_contact_name,
+        "website": company.website,
+        "description": company.description
     }), 200
 
-@app.route("/logout")
+@app.route("/logout", methods=["POST"])
 def logout():
 
     session.clear()
@@ -376,10 +404,103 @@ def pending_companies():
             "company_name": company.company_name,
             "hr_contact_name": company.hr_contact_name,
             "website": company.website,
-            "approval_status": company.approval_status
+            "approval_status": company.approval_status,
+            "description": company.description
         })
 
     return jsonify(companies_data), 200
+
+@app.route("/admin/companies")
+def all_companies():
+
+    if session.get("role") != "admin":
+        return jsonify({
+            "message":"Access Denied"
+        }),403
+
+    companies = Company.query.all()
+
+    companies_data = []
+
+    for company in companies:
+
+        user = User.query.get(
+            company.user_id
+        )
+
+        companies_data.append({
+
+            "company_id":company.id,
+
+            "user_id":user.id,
+
+            "company_name":company.company_name,
+
+            "hr_contact_name":company.hr_contact_name,
+
+            "website":company.website,
+
+            "approval_status":company.approval_status,
+
+            "active":user.active
+
+        })
+
+    return jsonify(companies_data),200
+
+@app.route("/admin/drives")
+def all_drives():
+
+    if session.get("role") != "admin":
+        return jsonify({
+            "message": "Access Denied"
+        }), 403
+
+    drives = PlacementDrive.query.all()
+
+    drives_data = []
+
+    for drive in drives:
+
+        company = Company.query.get(
+            drive.company_id
+        )
+
+        applicant_count = Application.query.filter_by(
+            drive_id=drive.id
+        ).count()
+
+        drives_data.append({
+
+            "drive_id": drive.id,
+
+            "company_id": company.id,
+
+            "company_name": company.company_name,
+
+            "job_title": drive.job_title,
+
+            "job_description": drive.job_description,
+
+            "eligibility_branch": drive.eligibility_branch,
+
+            "eligibility_cgpa": drive.eligibility_cgpa,
+
+            "eligibility_year": drive.eligibility_year,
+
+            "application_deadline": str(
+                drive.application_deadline
+            ),
+
+            "status": drive.status,
+
+            "applicant_count": applicant_count
+
+        })
+
+    return jsonify(
+        drives_data
+    ), 200
 
 
 @app.route("/admin/approve-company/<int:company_id>", methods=["POST"])
@@ -438,33 +559,6 @@ def reject_company(company_id):
         "approval_status": company.approval_status
     }), 200
 
-
-@app.route("/company-info")
-def company_info():
-
-    if session.get("role") != "company":
-        return jsonify({
-            "message": "Access Denied"
-        }), 403
-
-    company = Company.query.filter_by(
-        user_id=session["user_id"]
-    ).first()
-
-    if not company:
-        return jsonify({
-            "message": "Company Not Found"
-        }), 404
-
-    return jsonify({
-        "company_id": company.id,
-        "company_name": company.company_name,
-        "hr_contact_name": company.hr_contact_name,
-        "website": company.website,
-        "description": company.description,
-        "approval_status": company.approval_status
-    }), 200
-
 @app.route("/company/drives")
 def company_drives():
 
@@ -499,6 +593,14 @@ def company_drives():
             "drive_id": drive.id,
 
             "job_title": drive.job_title,
+
+            "job_description": drive.job_description,
+
+            "eligibility_branch": drive.eligibility_branch,
+
+            "eligibility_cgpa": drive.eligibility_cgpa,
+
+            "eligibility_year": drive.eligibility_year,
 
             "status": drive.status,
 
@@ -586,6 +688,123 @@ def create_drive():
         "status": drive.status
     }), 201
 
+@app.route("/company/edit-drive/<int:drive_id>", methods=["POST"])
+def edit_drive(drive_id):
+
+    if session.get("role") != "company":
+        return jsonify({
+            "message": "Access Denied"
+        }), 403
+
+    company = Company.query.filter_by(
+        user_id=session["user_id"]
+    ).first()
+
+    if company.approval_status == "pending":
+        return jsonify({
+            "message": "Approval Pending"
+        }), 403
+
+    if company.approval_status == "rejected":
+        return jsonify({
+            "message": "Company Rejected"
+        }), 403
+
+    drive = PlacementDrive.query.get(
+        drive_id
+    )
+
+    if not drive:
+        return jsonify({
+            "message": "Drive Not Found"
+        }), 404
+
+    if drive.company_id != company.id:
+        return jsonify({
+            "message": "Access Denied"
+        }), 403
+
+    job_title = request.form["job_title"]
+
+    job_description = request.form["job_description"]
+
+    branches = request.form.getlist("eligibility_branch")
+
+    eligibility_branch = ",".join(branches)
+
+    eligibility_cgpa = float(
+        request.form["eligibility_cgpa"]
+    )
+
+    eligibility_year = int(
+        request.form["eligibility_year"]
+    )
+
+    application_deadline = datetime.strptime(
+        request.form["application_deadline"],
+        "%Y-%m-%d"
+    ).date()
+
+    drive.job_title = job_title
+    drive.job_description = job_description
+    drive.eligibility_branch = eligibility_branch    
+    drive.eligibility_cgpa = eligibility_cgpa
+    drive.eligibility_year = eligibility_year
+    drive.application_deadline = application_deadline
+
+    drive.status = "pending"
+
+    db.session.commit()
+
+    return jsonify({
+    "message": "Placement Drive Updated. Waiting For Approval."
+    }), 200
+
+@app.route("/company/toggle-drive-status/<int:drive_id>", methods=["POST"])
+def toggle_drive_status(drive_id):
+
+    if session.get("role") != "company":
+        return jsonify({
+            "message": "Access Denied"
+        }), 403
+
+    drive = PlacementDrive.query.get(
+        drive_id
+    )
+
+    if not drive:
+        return jsonify({
+            "message": "Drive Not Found"
+        }), 404
+
+    company = Company.query.filter_by(
+        user_id=session["user_id"]
+    ).first()
+
+    if not company:
+        return jsonify({
+            "message": "Company Not Found"
+        }), 404
+
+    if drive.company_id != company.id:
+        return jsonify({
+            "message": "Access Denied"
+        }), 403
+
+    if drive.status == "approved":
+
+        drive.status = "closed"
+
+    elif drive.status == "closed":
+
+        drive.status = "approved"
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Drive Status Updated"
+    }), 200
+
 @app.route("/admin/pending-drives")
 def pending_drives():
 
@@ -616,7 +835,8 @@ def pending_drives():
             "application_deadline": str(
                 drive.application_deadline
             ),
-            "status": drive.status
+            "status": drive.status,
+            "job_description": drive.job_description
         })
 
     return jsonify(
@@ -683,15 +903,17 @@ def reject_drive(drive_id):
     }), 200
 
 @app.route("/student/drives")
-@cache.cached(timeout=60)
+@cache.cached(timeout=60, key_prefix=lambda: f"student_drives_{session.get('user_id')}")
 def student_drives():
 
     if session.get("role") != "student":
         return jsonify({
             "message": "Access Denied"
         }), 403
-
-    print("DATABASE QUERY EXECUTED")
+    
+    student_profile = StudentProfile.query.filter_by(
+        user_id=session["user_id"]
+    ).first()
 
     drives = PlacementDrive.query.filter_by(
         status="approved"
@@ -701,13 +923,33 @@ def student_drives():
 
     for drive in drives:
 
+        eligible_branches = drive.eligibility_branch.split(",")
+
+        eligible = (
+            student_profile is not None
+            and student_profile.branch in eligible_branches
+            and student_profile.cgpa >= drive.eligibility_cgpa
+            and student_profile.graduation_year == drive.eligibility_year
+        )
+
+        application = Application.query.filter_by(
+            student_id=session["user_id"],
+            drive_id=drive.id
+        ).first()
+
+        already_applied = application is not None
+
         drives_data.append({
             "id": drive.id,
             "job_title": drive.job_title,
             "eligibility_branch": drive.eligibility_branch,
             "eligibility_cgpa": drive.eligibility_cgpa,
             "eligibility_year": drive.eligibility_year,
-            "application_deadline": str(drive.application_deadline)
+            "application_deadline": str(drive.application_deadline),
+            "company_name": drive.company.company_name,
+            "eligible": eligible,
+            "already_applied": already_applied,
+            "is_deadline_over": date.today() > drive.application_deadline
         })
     return jsonify(drives_data)
 
@@ -734,7 +976,32 @@ def apply_drive(drive_id):
         return jsonify({
             "message": "Complete Profile First"
         }), 400
+
+    if not student_profile.resume:
+        return jsonify({
+            "message": "Upload Resume First and Complete your profile"
+        }), 400
     
+    if not student_profile.branch:
+        return jsonify({
+            "message": "Complete Profile First"
+        }), 400
+
+    if student_profile.cgpa is None:
+        return jsonify({
+            "message": "Complete Profile First"
+        }), 400
+
+    if student_profile.graduation_year is None:
+        return jsonify({
+            "message": "Complete Profile First"
+        }), 400
+    
+    if date.today() > drive.application_deadline:
+        return jsonify({
+            "message": "Application Deadline Has Passed"
+        }), 400
+
     eligible_branches = (
     drive.eligibility_branch.split(","))
 
@@ -1072,6 +1339,7 @@ def student_applications():
         applications_data.append({
             "application_id": application.id,
             "drive_id": drive.id,
+            "company_name": drive.company.company_name,
             "job_title": drive.job_title,
             "status": application.status,
             "application_date": str(
@@ -1251,17 +1519,33 @@ def search_student():
 
     for student in students:
 
+        profile = StudentProfile.query.filter_by(
+            user_id=student.id
+        ).first()
+
         students_data.append({
+
             "student_id": student.id,
+
             "name": student.name,
+
             "email": student.email,
-            "active": student.active
+
+            "active": student.active,
+
+            "branch": profile.branch if profile else "-",
+
+            "cgpa": profile.cgpa if profile else "-",
+
+            "graduation_year": profile.graduation_year if profile else "-",
+
+            "resume": profile.resume if profile else None
+
         })
 
     return jsonify(
         students_data
     ), 200
-
 
 @app.route("/admin/search/company")
 def search_company():
@@ -1351,38 +1635,6 @@ def admin_applications():
     return jsonify(
         applications_data
     ), 200
-
-@app.route("/student/search/drive")
-def search_drive():
-
-    if session.get("role") != "student":
-        return jsonify({
-            "message": "Access Denied"
-        }), 403
-
-    title = request.args.get("title", "")
-
-    drives = PlacementDrive.query.filter(
-        PlacementDrive.status == "approved",
-        PlacementDrive.job_title.ilike(f"%{title}%")
-    ).all()
-
-    drives_data = []
-
-    for drive in drives:
-
-        drives_data.append({
-            "id": drive.id,
-            "job_title": drive.job_title,
-            "eligibility_branch": drive.eligibility_branch,
-            "eligibility_cgpa": drive.eligibility_cgpa,
-            "eligibility_year": drive.eligibility_year,
-            "application_deadline": str(
-                drive.application_deadline
-            )
-        })
-
-    return jsonify(drives_data)
 
 @app.route("/admin/deactivate/student/<int:user_id>", methods=["POST"])
 def deactivate_student(user_id):
@@ -1585,42 +1837,6 @@ def download_export(filename):
         as_attachment=True
 
     )
-
-# @app.route("/test-email")
-# def test_email():
-
-#     students = User.query.filter_by(
-#         role="student",
-#         active=True
-#     ).all()
-
-#     for student in students:
-#         msg = Message(
-#             subject="Placement Portal Test",
-#             sender=app.config["MAIL_USERNAME"],
-#             #recipients=[app.config["MAIL_USERNAME"]]
-#             recipients=[student.email]
-#         )
-
-#         msg.body = "Congratulations! Flask-Mail is working."
-
-#         mail.send(msg)
-
-#     return "Email Sent Successfully"
-
-# @app.route("/test-reminder")
-# def test_reminder():
-
-#     daily_reminder_task.delay()
-
-#     return "Reminder Task Started"
-
-# @app.route("/test-monthly-report")
-# def test_monthly_report():
-
-#     monthly_report_task.delay()
-
-#     return "Monthly Report Started"
 
 if __name__ == "__main__":
     app.run(debug=True)
