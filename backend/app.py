@@ -1046,6 +1046,9 @@ def apply_drive(drive_id):
 
     db.session.add(application)
     db.session.commit()
+    cache.delete(
+        f"student_drives_{session['user_id']}"
+    )
     return jsonify({
         "message": "Application Submitted Successfully"
     }), 200
