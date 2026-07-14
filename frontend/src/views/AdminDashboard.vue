@@ -2261,6 +2261,7 @@ const filteredStudents = computed(() => {
     })
 
 })
+
 </script>
 
 <style scoped>

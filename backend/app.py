@@ -35,7 +35,7 @@ ALLOWED_EXTENSIONS = {"pdf", "doc", "docx", "jpg", "jpeg", "png"}
 db.init_app(app)
 cache.init_app(app)
 mail = Mail(app)
-migrate = Migrate(app, db) #flask db init, #flask db migrate -m "msg", #flask db upgrade
+migrate = Migrate(app, db)
 
 with app.app_context():
     db.create_all()
