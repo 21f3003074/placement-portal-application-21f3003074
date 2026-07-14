@@ -28,3 +28,8 @@ For Celery
 
 1. celery -A tasks worker --pool=solo --loglevel=info
 2. celery -A tasks beat --loglevel=info
+
+For Memurai
+
+1. Get-Service Memurai
+2. Start-Service memurai
